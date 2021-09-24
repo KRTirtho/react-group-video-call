@@ -1,20 +1,15 @@
 import Peer, { MediaConnection } from "peerjs";
-import { CSSProperties, FC, useEffect, useMemo, useRef, useState } from "react"
+import { FC, useEffect, useMemo, useRef, useState } from "react"
 import { useRouteMatch } from "react-router";
 import io from "socket.io-client";
 import { v4 as uuid } from "uuid"
-
-
-
-const videoStyle: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-}
+import useClipboard from "react-use-clipboard";
 
 export const Room: FC = () => {
 
   const { params } = useRouteMatch<{ room: string }>()
+
+  const [, setCopied] = useClipboard(window.location.href);
 
   const [peers, setPeers] = useState<{ id: string, call: MediaConnection }[]>([])
 
@@ -24,6 +19,9 @@ export const Room: FC = () => {
     host: 'localhost',
     port: 5000
   }), [])
+
+  const [mute, setMute] = useState(false)
+  const [blind, setBlind] = useState(false)
 
   const socket = useMemo(() => io("http://localhost:4000", { transports: ["websocket"], withCredentials: true }), [])
 
@@ -55,7 +53,14 @@ export const Room: FC = () => {
   useEffect(() => {
     if (userVideoRef.current) {
 
-      navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then((stream) => {
+      navigator.mediaDevices.getUserMedia({
+        audio: !mute, video: !blind ? {
+          width: { min: 320, max: 1280 },
+          height: { min: 180 },
+          frameRate: 25,
+          facingMode: "user"
+        } : false,
+      }).then((stream) => {
         // local user video stream
         if (userVideoRef?.current) userVideoRef.current.srcObject = stream
 
@@ -75,8 +80,8 @@ export const Room: FC = () => {
         // the new user completes the navigator media promise.
         // When a new user connects, we are getting an userId from socket
         // and we immediately call connectToNewUser(userId, stream) without 
-        // waiting till the time new client finishes the promise
-        // thus emit-listening another event to let the new user finish
+        // waiting till the time new client finishes the promise.
+        // Thus emit-listening another event to let the new user finish
         // it's navigator.mediaDevices.getUserMedia() Promise before socket
         // connection
         socket.on('new-user-connected', userId => {
@@ -91,9 +96,7 @@ export const Room: FC = () => {
         peer.destroy()
       }
     }
-  }, [])
-
-
+  }, [blind, mute])
 
   useEffect(() => {
     const onUserDisconnected = (userId: string) => {
@@ -121,17 +124,34 @@ export const Room: FC = () => {
 
   console.table(peers)
 
+  const btnClasses = "bg-gray-100 text-gray-800 p-2 font-semibold rounded"
+
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, 300px)",
-      gridAutoRows: "300px",
-    }}>
-      <video ref={userVideoRef} autoPlay muted style={videoStyle}></video>
-      {
-        peers.map(({ id, call }) => <Video key={id} call={call} />)
-      }
-    </div>
+    <section className="flex flex-col">
+      <div className="flex justify-center space-x-2 items-center m-2">
+        <p className="font-semibold">Invite with link : {window.location.href}</p>
+        <button className={btnClasses} onClick={setCopied}>Copy!</button>
+      </div>
+      <div
+        style={{ gridTemplateColumns: "repeat(auto-fill, 300px)", }} className="grid auto-rows-[300px] gap-1 m-2"
+      >
+        {!blind ?
+          <video
+            ref={userVideoRef}
+            autoPlay
+            muted
+            className="w-full h-full object-cover rounded" />
+          : <div className="w-full h-full object-cover rounded bg-gray-200" />
+        }
+        {
+          peers.map(({ id, call }) => <Video key={id} call={call} />)
+        }
+      </div>
+      <div className="absolute bottom-10 w-full space-x-2 flex justify-center">
+        <button className={btnClasses + " bg-red-400"} onClick={() => setMute(!mute)}>{!mute ? "Mute" : "Unmute"}</button>
+        <button className={btnClasses + " bg-red-400"} onClick={() => setBlind(!blind)}>{!blind ? "Blind" : "Unblind"}</button>
+      </div>
+    </section>
   )
 }
 
@@ -164,6 +184,10 @@ export const Video: FC<VideoProps> = ({ call }) => {
   }, [call, videoRef])
 
   return (
-    <video ref={videoRef} style={videoStyle} autoPlay></video>
+    <video
+      ref={videoRef}
+      className="w-full h-full object-cover rounded"
+      autoPlay
+    />
   )
 }

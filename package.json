@@ -2,21 +2,14 @@
   "name": "react-group-video-call",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "nodemon server.js"
-  },
+  "workspaces":[
+    "packages/client",
+    "packages/server"
+  ],
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "ejs": "^3.1.6",
-    "express": "^4.17.1",
-    "peer": "^0.6.1",
-    "socket.io": "^4.2.0",
-    "uuid": "^8.3.2"
+  "author": {
+    "name": "KRTirtho",
+    "email": "krtirtho@gmail.com"
   },
-  "devDependencies": {
-    "nodemon": "^2.0.4"
-  }
+  "license": "MIT"
 }

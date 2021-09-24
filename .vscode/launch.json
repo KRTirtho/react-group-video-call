@@ -9,7 +9,7 @@
       "port": 9222,
       "request": "attach",
       "type": "pwa-chrome",
-      "webRoot": "${workspaceFolder}/client"
+      "webRoot": "${workspaceFolder}/packages/client"
     }
     
   ]

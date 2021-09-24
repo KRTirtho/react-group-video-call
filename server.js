@@ -5,6 +5,7 @@ const io = require('socket.io')(server)
 const { v4: uuidV4 } = require('uuid')
 
 app.set('view engine', 'ejs')
+app.enable("cors")
 app.use(express.static('public'))
 
 app.get('/', (req, res) => {
@@ -17,13 +18,18 @@ app.get('/:room', (req, res) => {
 
 io.on('connection', socket => {
   socket.on('join-room', (roomId, userId) => {
+    console.log({ roomId, userId })
     socket.join(roomId)
-    socket.to(roomId).broadcast.emit('user-connected', userId)
+    socket.to(roomId).emit('user-connected', userId)
 
     socket.on('disconnect', () => {
-      socket.to(roomId).broadcast.emit('user-disconnected', userId)
+      socket.to(roomId).emit('user-disconnected', userId)
+    })
+
+    socket.on('connection-request', (roomId, userId) => {
+      io.to(roomId).emit('new-user-connected', userId);
     })
   })
 })
 
-server.listen(3000)
+server.listen(4000)
